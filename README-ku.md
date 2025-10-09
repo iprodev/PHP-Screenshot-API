@@ -1,6 +1,6 @@
-# php-screenshot-api (v1.3.0) — کوردیی سۆرانی
+# PHP-Screenshot-API — کوردیی سۆرانی
 
-سرویسێکی REST بە PHP بۆ وێنەگرتن (screenshot) لە ماڵپەڕەکان لەسەر Debian 12.
+سرویسێکی REST بە PHP بۆ وێنەگرتن (screenshot) لە ماڵپەڕەکان.
 
 ## تایبەتمەندییەکان
 - وێنەگرتن لە هەر URL ـێکی گشتی

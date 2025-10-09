@@ -1,6 +1,6 @@
-# php-screenshot-api (v1.3.0)
+# PHP-Screenshot-API (English)
 
-A lightweight PHP REST API to capture website screenshots on Debian 12.
+A lightweight PHP REST API to capture website screenshots.
 
 ## Features
 - Capture from any public URL

@@ -1,6 +1,6 @@
-# php-screenshot-api (v1.3.0) — فارسی
+# PHP-Screenshot-API — فارسی
 
-یک REST API سبک با PHP برای گرفتن اسکرین‌شات از هر URL روی Debian 12.
+یک REST API سبک با PHP برای گرفتن اسکرین‌شات از هر URL.
 
 ## ویژگی‌ها
 - اسکرین‌شات از هر URL عمومی
