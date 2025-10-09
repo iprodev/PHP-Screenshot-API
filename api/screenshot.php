@@ -43,6 +43,15 @@ $fullPage = (bool)($body['full_page'] ?? false);
 $delaySec = isset($body['delay']) ? max(0, (int)$body['delay']) : 0;
 $format = strtolower($body['format'] ?? 'png'); // png|jpg
 $responseType = strtolower($body['response'] ?? 'json'); // json|binary
+$trimWhite = isset($body['trim_white']) ? (bool)$body['trim_white'] : true;
+
+// Proxy (optional)
+$proxy = $body['proxy'] ?? null;
+$proxyType = is_array($proxy) ? strtolower($proxy['type'] ?? '') : '';
+$proxyHost = is_array($proxy) ? ($proxy['host'] ?? '') : '';
+$proxyPort = is_array($proxy) ? (int)($proxy['port'] ?? 0) : 0;
+$proxyUser = is_array($proxy) ? ($proxy['username'] ?? null) : null;
+$proxyPass = is_array($proxy) ? ($proxy['password'] ?? null) : null;
 
 if ($format === 'jpg') $format = 'jpeg';
 if (!in_array($format, ['png','jpeg'], true)) $format = 'png';
@@ -83,6 +92,10 @@ try {
     $cap->setTimeout(20000);
     $cap->setDelay($delaySec);
     $cap->setFullPage($fullPage);
+    $cap->setTrimWhite($trimWhite);
+    if ($proxyType && $proxyHost && $proxyPort) {
+        $cap->setProxy($proxyType, $proxyHost, (int)$proxyPort, $proxyUser, $proxyPass);
+    }
 
     $ok = $cap->capture($url, $outPath);
     if (!$ok || !file_exists($outPath)) {
@@ -110,7 +123,8 @@ try {
                 'height' => $height,
                 'full_page' => $fullPage,
                 'delay' => $delaySec,
-                'format' => $ext
+                'format' => $ext,
+                'trim_white' => $trimWhite
             ],
             'base64' => $b64
         ]);

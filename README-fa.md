@@ -1,130 +1,95 @@
-# PHP-Screenshot-API (فارسی)
+# php-screenshot-api (v1.3.0) — فارسی
 
-یک REST API سبک با PHP برای گرفتن اسکرین‌شات از هر URL.
+یک REST API سبک با PHP برای گرفتن اسکرین‌شات از هر URL روی Debian 12.
 
-## ✨ ویژگی‌ها
-- 📸 اسکرین‌شات از هر URL
-- ⚙️ تعیین ابعاد (`width`, `height`)
-- 🌐 **تمام صفحه** (`full_page: true`)
-- 🕒 **تاخیر** قبل از عکس‌گرفتن (`delay` بر حسب ثانیه)
-- 🧱 فرمت خروجی: **PNG** یا **JPG**
-- 🧹 حذف خودکار فایل‌های قدیمی (بیش از ۱ ساعت)
-- 🔐 احراز هویت با `X-API-Key`
-- 🔄 پاسخ **JSON** یا **باینری تصویر**
-- ⚖️ مجوز MIT
+## ویژگی‌ها
+- اسکرین‌شات از هر URL عمومی
+- تعیین ابعاد دلخواه (عرض/ارتفاع)
+- اسکرین‌شات تمام صفحه (`full_page: true`)
+- تاخیر قابل تنظیم (`delay` بر حسب ثانیه) — با `wkhtmltoimage` قابل پیش‌بینی‌تر
+- فرمت خروجی: **PNG** یا **JPG**
+- نوع پاسخ: **`json`** یا **`binary`**
+- احراز هویت با هدر `X-API-Key`
+- **پشتیبانی پراکسی**: HTTP و SOCKS5 (با `username/password` اختیاری)
+- پاکسازی خودکار فایل‌های قدیمی (`CLEANUP_TTL`، پیش‌فرض ۳۶۰۰ ثانیه)
+- حذف نوار سفید پایین تصویر (`trim_white`، پیش‌فرض `true`)
 
----
-
-## 🧰 پیش‌نیازها
+## پیش‌نیازها (Debian 12)
 ```bash
 sudo apt update
 sudo apt install -y php-fpm php-cli php-gd nginx chromium wkhtmltopdf unzip curl jq
 ```
-> `php-gd` برای تبدیل PNG→JPG لازم است.
 
----
-
-## 🚀 راه‌اندازی سریع (Development)
+## راه‌اندازی (Development)
 ```bash
 sudo mkdir -p /var/www/php-screenshot-api
 sudo chown -R $USER:www-data /var/www/php-screenshot-api
-# فایل‌های پروژه را کپی کنید
 cd /var/www/php-screenshot-api
 php -S 0.0.0.0:8080 -t .
-# دسترسی: http://SERVER_IP:8080
+# http://SERVER_IP:8080
 ```
 
-### استقرار با Nginx + PHP-FPM
-- فایل `nginx.example.conf` را در `/etc/nginx/sites-available/php-screenshot-api` قرار دهید.
-- لینک به `sites-enabled` بسازید، سپس:
-```bash
-sudo nginx -t && sudo systemctl reload nginx
+## تنظیمات (`config.php`)
+```php
+define('API_KEY', 'mysecretapikey123'); // در تولید تغییر دهید
+define('ALLOW_ORIGIN', '*');            // CORS (مثلاً https://example.com)
+define('CLEANUP_TTL', 3600);            // حذف فایل‌های قدیمی‌تر از این مقدار (ثانیه)
 ```
-> اگر نسخه PHP شما متفاوت است، مسیر `fastcgi_pass` را ویرایش کنید (مثلاً `php8.2-fpm.sock`).
 
----
-
-## 🔐 احراز هویت
-تمام درخواست‌ها باید هدر زیر را داشته باشند:
+## Nginx (نمونه)
+```nginx
+server {
+  listen 80;
+  server_name _;
+  root /var/www/php-screenshot-api;
+  index index.php;
+  location /api/ { try_files $uri $uri/ /api/screenshot.php; }
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+  }
+}
 ```
-X-API-Key: mysecretapikey123
-```
-> می‌توانید مقدار آن را در `config.php` تغییر دهید.
 
----
+## Endpointها
 
-## 📡 Endpoint ها
-
-### 1) `POST /api/screenshot.php`
-**Headers:**
+### `POST /api/screenshot.php`
+هدرها:
 ```
 Content-Type: application/json
-X-API-Key: mysecretapikey123
+X-API-Key: <YOUR_API_KEY>
 ```
 
-**Body مثال:**
-```json
-{
-  "url": "https://example.com",
-  "width": 1366,
-  "height": 900,
-  "full_page": true,
-  "delay": 2,
-  "format": "jpg",
-  "response": "json"
-}
-```
+پارامترهای بدنه (JSON):
+- `url` *(الزامی)* — فقط http/https
+- `width`, `height` *(اختیاری)*
+- `full_page` *(bool)*
+- `delay` *(ثانیه)*
+- `format`: `png` یا `jpg` (پیش‌فرض `png`)
+- `response`: `json` یا `binary` (پیش‌فرض `json`)
+- `trim_white` *(bool، پیش‌فرض true)*
+- `proxy` *(object)*: `{ type: "http"|"socks5", host, port, username?, password? }`
 
-**پاسخ JSON موفق:**
-```json
-{
-  "success": true,
-  "filename": "screenshot_1730900000_ab12cd34ef.jpg",
-  "deleted_old_files": 3,
-  "meta": {
-    "width": 1366,
-    "height": 900,
-    "full_page": true,
-    "delay": 2,
-    "format": "jpg"
-  },
-  "base64": "iVBORw0KGgoAAAANS..."
-}
-```
-
-**نمونه cURL (JSON):**
+نمونه‌ها:
 ```bash
-curl -s -X POST http://YOUR_SERVER/api/screenshot.php   -H 'Content-Type: application/json'   -H 'X-API-Key: mysecretapikey123'   -d '{"url":"https://example.com","response":"json"}' | jq .
+# پاسخ JSON
+curl -s -X POST http://YOUR_SERVER/api/screenshot.php   -H 'Content-Type: application/json' -H 'X-API-Key: mysecretapikey123'   -d '{"url":"https://example.com","response":"json"}' | jq .
+
+# پاسخ باینری -> ذخیره فایل
+curl -s -X POST http://YOUR_SERVER/api/screenshot.php   -H 'Content-Type: application/json' -H 'X-API-Key: mysecretapikey123'   -d '{"url":"https://example.com","format":"png","response":"binary"}'   -o screenshot.png
+
+# با پراکسی SOCKS5 + تاخیر
+curl -s -X POST http://YOUR_SERVER/api/screenshot.php   -H 'Content-Type: application/json' -H 'X-API-Key: mysecretapikey123'   -d '{"url":"https://example.com","full_page":true,"delay":3,"proxy":{"type":"socks5","host":"127.0.0.1","port":1080}}' | jq .
 ```
 
-**نمونه cURL (Binary):**
-```bash
-curl -s -X POST http://YOUR_SERVER/api/screenshot.php   -H 'Content-Type: application/json'   -H 'X-API-Key: mysecretapikey123'   -d '{"url":"https://example.com","format":"png","response":"binary"}'   -o screenshot.png
-```
+### `GET /api/image.php?name=<FILENAME>`
+دانلود تصویر ذخیره‌شده.
 
-### 2) `GET /api/image.php?name=...`
-دانلود مستقیم فایل ذخیره‌شده:
-```
-GET /api/image.php?name=screenshot_*.png|jpg
-```
+## امنیت
+- `API_KEY` را در تولید تغییر دهید (ENV/Secrets).
+- CORS (`ALLOW_ORIGIN`) را محدود کنید.
+- Rate limiting و whitelist دامنه‌ها را مدنظر داشته باشید.
+- دسترسی اجرای دستورهای سیستمی برای کاربر سرویس را محدود کنید.
 
----
-
-## 🧹 حذف خودکار
-قبل از هر اسکرین‌شات جدید، فایل‌های داخل `storage/` که بیش از مقدار `CLEANUP_TTL` (پیش‌فرض ۳۶۰۰ ثانیه) از آخرین تغییرشان گذشته باشد حذف می‌شوند.
-
----
-
-## 🛡️ نکات امنیتی
-- کلید `API_KEY` را در تولید تغییر دهید و ترجیحاً از متغیر محیطی/secret استفاده کنید.
-- Rate limiting و whitelist دامنه‌ها توصیه می‌شود.
-- اجرای فرمان‌های سیستمی امن‌سازی شود (AppArmor/SELinux، محدودیت دسترسی).
-
----
-
-## 🧪 نکات فنی
-- Chromium با `--screenshot` معمولاً نمای قابل‌مشاهده را ذخیره می‌کند؛ برای **full_page** ارتفاع پنجره بزرگ تنظیم می‌شود (تا ۲۰۰۰۰px). در صفحات بسیار بلند ممکن است محدودیت وجود داشته باشد.
-- `wkhtmltoimage` به‌عنوان fallback استفاده می‌شود و با پسوند خروجی کار می‌کند.
-- فونت‌های لازم را روی سرور نصب کنید تا رندر بهتری بگیرید.
-
-موفق باشید ✨
+## مجوز
+MIT (فایل `LICENSE`).
