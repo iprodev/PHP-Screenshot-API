@@ -6,7 +6,7 @@ require_once __DIR__ . '/../config.php';
 
 use Screenshot\Screenshot;
 
-// --- CORS & Preflight
+// CORS & preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Origin: ' . ALLOW_ORIGIN);
     header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 header('Access-Control-Allow-Origin: ' . ALLOW_ORIGIN);
 
-// --- API Key auth
+// API Key
 $providedKey = $_SERVER['HTTP_X_API_KEY'] ?? '';
 if ($providedKey !== API_KEY) {
     header('Content-Type: application/json; charset=utf-8');
@@ -25,7 +25,7 @@ if ($providedKey !== API_KEY) {
     exit;
 }
 
-// --- Parse JSON
+// Parse JSON
 $raw = file_get_contents('php://input');
 $body = json_decode($raw, true);
 if (!is_array($body)) {
@@ -35,7 +35,7 @@ if (!is_array($body)) {
     exit;
 }
 
-// --- Params
+// Params
 $url = $body['url'] ?? null;
 $width = isset($body['width']) ? (int)$body['width'] : 1280;
 $height = isset($body['height']) ? (int)$body['height'] : 800;
@@ -61,23 +61,21 @@ if (!in_array(strtolower($parts['scheme'] ?? ''), ['http','https'], true)) {
     exit;
 }
 
-// --- Storage & Cleanup
+// Storage & cleanup
 $storage = realpath(__DIR__ . '/../storage') ?: (__DIR__ . '/../storage');
 if (!is_dir($storage)) { mkdir($storage, 0775, true); }
 $now = time();
 $deleted = 0;
 foreach (glob($storage . '/*') as $f) {
-    if (is_file($f) && $now - filemtime($f) > CLEANUP_TTL) {
-        @unlink($f); $deleted++;
-    }
+    if (is_file($f) && $now - filemtime($f) > CLEANUP_TTL) { @unlink($f); $deleted++; }
 }
 
-// --- Output file path
+// Target file
 $ext = $format === 'jpeg' ? 'jpg' : 'png';
 $filename = sprintf('screenshot_%d_%s.%s', time(), bin2hex(random_bytes(8)), $ext);
 $outPath = $storage . DIRECTORY_SEPARATOR . $filename;
 
-// --- Capture
+// Capture
 try {
     $cap = new Screenshot();
     $cap->setViewport($width, $height);

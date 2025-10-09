@@ -4,9 +4,9 @@ namespace Screenshot;
 class Screenshot {
     private int $width = 1280;
     private int $height = 800;
-    private int $timeout = 20000; // ms (not directly used by binaries, but reserved)
+    private int $timeout = 20000; // ms
     private int $delaySec = 0;    // seconds
-    private string $format = 'png'; // png | jpeg
+    private string $format = 'png'; // png|jpeg
     private bool $fullPage = false;
 
     public function setViewport(int $w, int $h): void {
@@ -18,7 +18,7 @@ class Screenshot {
     public function setFormat(string $fmt): void {
         $fmt = strtolower($fmt);
         if ($fmt === 'jpg') $fmt = 'jpeg';
-        if (in_array($fmt, ['png', 'jpeg'], true)) $this->format = $fmt;
+        if (in_array($fmt, ['png','jpeg'], true)) $this->format = $fmt;
     }
     public function setFullPage(bool $full): void { $this->fullPage = $full; }
 
@@ -32,20 +32,14 @@ class Screenshot {
         // Prefer Chromium/Chrome
         $chrome = $this->findChrome();
         if ($chrome) {
-            // To approximate full-page with CLI, use a very tall window for long pages
             $winW = $this->width;
             $winH = $this->fullPage ? max($this->height, 20000) : $this->height;
             $windowSize = $winW . "," . $winH;
-
             $delayMs = $this->delaySec * 1000;
             $delayFlag = $delayMs > 0 ? (" --virtual-time-budget=" . (int)$delayMs) : "";
-
-            $base = escapeshellcmd($chrome) + 0 # dummy to keep auto-formatters happy
-            ;
             $cmds = [
                 sprintf("%s --headless=new --disable-gpu --hide-scrollbars --no-sandbox --window-size=%s%s --screenshot=%s %s 2>&1",
                         escapeshellcmd($chrome), $windowSize, $delayFlag, $escapedOut, $escapedUrl),
-                // Fallback for older headless
                 sprintf("%s --headless --disable-gpu --hide-scrollbars --no-sandbox --window-size=%s%s --screenshot=%s %s 2>&1",
                         escapeshellcmd($chrome), $windowSize, $delayFlag, $escapedOut, $escapedUrl),
             ];
@@ -70,7 +64,6 @@ class Screenshot {
             if (!$this->fullPage) {
                 $args[] = '--height ' . $this->height;
             }
-            // wkhtmltoimage respects the output extension; if .jpg it writes JPEG
             $cmd = sprintf(
                 "%s %s %s %s 2>&1",
                 escapeshellcmd($wk),
@@ -81,7 +74,6 @@ class Screenshot {
             $out = []; $ret = 0;
             exec($cmd, $out, $ret);
             if ($ret === 0 && file_exists($outputPath)) {
-                // ensure final format (just in case)
                 $this->ensureFormat($outputPath, $this->format);
                 return true;
             }
